@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PARCHE: board-patch.css
+   — Mejora de imágenes de tropas en el tablero (mostrar cara/parte superior)
+   — Mejora de indicadores de estado de ataque y fatiga de invocación
+   Agregar al final de board.css, O importar en index.html después de board.css
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. IMAGEN DE TROPA — centrada en la parte SUPERIOR (cara del personaje)
+   object-position: center 15% → muestra cabeza/torso, no los pies
+────────────────────────────────────────────────────────────────────────── */
+.troop-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 15%;   /* ← clave: sube el encuadre al rostro */
+    opacity: 0.72;
+    pointer-events: none;
+    transition: opacity 0.2s, object-position 0.3s;
+}
+
+/* Al hacer hover, abrimos un poco más el encuadre para ver algo de cuerpo */
+.cell-filled:hover .troop-img {
+    opacity: 0.82;
+    object-position: center 20%;
+}
+
+/* Para celdas con imagen muy "plana" (personajes que miran de frente desde abajo)
+   podés sobrescribir por tipo si llegás a necesitarlo — por ejemplo:
+   .cell[data-cell*="boss"] .troop-img { object-position: center 10%; }
+*/
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. OVERLAY DE TROPA — gradient más alto para no tapar la cara
+   Antes el degradado subía demasiado tapando el rostro.
+   Ahora cubre solo el 40% inferior de la celda.
+────────────────────────────────────────────────────────────────────────── */
+.cell-player.cell-filled::after,
+.cell-enemy.cell-filled::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        rgba(8,11,20,0.96) 0%,    /* fondo opaco en el nombre/stats */
+        rgba(8,11,20,0.55) 32%,
+        rgba(8,11,20,0.10) 55%,   /* casi transparente en el torso */
+        rgba(8,11,20,0.00) 100%   /* completamente transparente arriba */
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. TROOP OVERLAY — bajar el contenido de texto al fondo de la celda
+────────────────────────────────────────────────────────────────────────── */
+.troop-overlay {
+    position: absolute;   /* ← cambiamos a absolute para pegarlo al fondo */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 3px 3px 5px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. TAGS DE ESTADO — reorganización visual
+   Separamos en dos grupos: estado de turno (atacó/fatiga) arriba,
+   efectos (veneno/quemadura/etc) abajo.
+────────────────────────────────────────────────────────────────────────── */
+
+/* Contenedor principal de tags ahora soporta dos filas */
+.troop-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    justify-content: center;
+    margin-top: 2px;
+}
+
+/* ── TAG: YA ATACÓ este turno ──
+   Antes era un ícono gris ilegible. Ahora es un badge prominente y rojo. */
+.tag-attacked {
+    /* Sobreescribimos el estilo original */
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.5rem !important;
+    font-family: var(--font-title);
+    letter-spacing: 0.06em;
+    color: #fff !important;
+    background: rgba(180, 30, 30, 0.88);
+    border: 1px solid rgba(255, 80, 60, 0.7);
+    border-radius: 3px;
+    padding: 1px 5px;
+    opacity: 1 !important;
+    text-shadow: none;
+    box-shadow: 0 0 8px rgba(220, 50, 40, 0.6);
+    animation: attacked-badge-appear 0.25s cubic-bezier(0.2,0.8,0.3,1);
+}
+
+@keyframes attacked-badge-appear {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── TAG: FATIGA DE INVOCACIÓN ──
+   Antes era apenas un emoji. Ahora es un badge amarillo parpadeante
+   que deja en claro que la unidad NO puede atacar este turno. */
+.tag-fatigue {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.5rem !important;
+    font-family: var(--font-title);
+    letter-spacing: 0.05em;
+    color: #1a1a0a !important;
+    background: rgba(255, 210, 0, 0.92);
+    border: 1px solid rgba(255, 230, 50, 0.8);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-weight: 700;
+    animation: fatigue-pulse 0.9s ease-in-out infinite alternate;
+    box-shadow: 0 0 10px rgba(255, 210, 0, 0.5);
+}
+
+@keyframes fatigue-pulse {
+    from { box-shadow: 0 0 6px rgba(255, 210, 0, 0.4); opacity: 0.85; }
+    to   { box-shadow: 0 0 14px rgba(255, 210, 0, 0.8); opacity: 1; }
+}
+
+/* ── TAG: ATURDIDO ──
+   Reforzamos el estado aturdido para que sea claramente diferente a "atacó" */
+.tag-stun {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.5rem !important;
+    font-family: var(--font-title);
+    letter-spacing: 0.05em;
+    color: #fff !important;
+    background: rgba(100, 80, 0, 0.9);
+    border: 1px solid rgba(255, 230, 50, 0.7);
+    border-radius: 3px;
+    padding: 1px 5px;
+    filter: none !important;        /* removemos el drop-shadow anterior */
+    text-shadow: none !important;
+    box-shadow: 0 0 10px rgba(255, 230, 0, 0.5);
+    animation: stun-badge-pulse 0.65s infinite alternate !important;
+}
+
+@keyframes stun-badge-pulse {
+    from { box-shadow: 0 0 6px rgba(255, 230, 0, 0.4); opacity: 0.8; }
+    to   { box-shadow: 0 0 18px rgba(255, 230, 0, 0.85); opacity: 1; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. INDICADOR VISUAL EN LA CELDA ENTERA cuando la tropa ya atacó
+   Una barra roja tenue en el borde inferior de la celda
+────────────────────────────────────────────────────────────────────────── */
+.cell-has-attacked {
+    border-bottom-color: rgba(180, 40, 30, 0.75) !important;
+    box-shadow: inset 0 -3px 0 rgba(180, 40, 30, 0.5) !important;
+}
+
+/* Celda con tropa disponible para atacar (jugador, sin fatiga, sin atacar) */
+.cell-ready-to-attack {
+    border-bottom-color: rgba(60, 180, 80, 0.7) !important;
+    box-shadow: inset 0 -3px 0 rgba(60, 180, 80, 0.45) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. BORDE SUPERIOR en la celda para tropas con fatiga de invocación
+   Un borde amarillo arriba indica "recién llegó, no puede atacar"
+────────────────────────────────────────────────────────────────────────── */
+.cell-has-fatigue {
+    border-top-color: rgba(255, 210, 0, 0.7) !important;
+    box-shadow: inset 0 3px 0 rgba(255, 210, 0, 0.35) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   7. Nombre de la tropa — mejorar legibilidad sobre la imagen
+────────────────────────────────────────────────────────────────────────── */
+.troop-name {
+    font-family: var(--font-title);
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-align: center;
+    line-height: 1.2;
+    color: #fff;
+    /* Sombra de texto más pronunciada para legibilidad sobre imagen */
+    text-shadow:
+        0 1px 0 rgba(0,0,0,1),
+        0 0 6px rgba(0,0,0,1),
+        0 0 14px rgba(0,0,0,0.9),
+        -1px 0 3px rgba(0,0,0,1),
+         1px 0 3px rgba(0,0,0,1);
+    padding: 0 3px;
+    max-width: 100%;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   8. Stats ATK / HP — sombra reforzada para leer sobre imagen
+────────────────────────────────────────────────────────────────────────── */
+.atk, .hp {
+    text-shadow:
+        0 0 8px currentColor,
+        0 1px 4px rgba(0,0,0,1),
+        -1px 0 3px rgba(0,0,0,1),
+         1px 0 3px rgba(0,0,0,1) !important;
+}
